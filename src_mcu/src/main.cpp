@@ -27,13 +27,15 @@
   In Adafruit_MotorShield.h
     #define MICROSTEPS 8
 
-  TODO: capture functions and vars into classes
+  TODO:
+  - capture functions and vars into classes
+  - implement runSpeedToPosition for oscillatory movement
 
  ******************************************************************************/
 
 #include <Arduino.h>
 #include "Wire.h"
-#include "AccelStepper.h"
+#include "DvG_Stepper.h"
 #include "Adafruit_MotorShield.h"
 #include "Adafruit_NeoPixel_ZeroDMA.h"
 #include "DvG_NeoPixel_Effects.h"
@@ -165,7 +167,7 @@ float rpm2sps(int16_t input_step_rpm)
     return step_sps;
 }
 
-AccelStepper Astepper(forwardstep, backwardstep);
+DvG_Stepper Astepper(forwardstep, backwardstep);
 
 // SERIAL
 // ------
