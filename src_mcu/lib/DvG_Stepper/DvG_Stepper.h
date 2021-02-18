@@ -130,8 +130,12 @@ private:
     // NEWLY ADDED
     // -----------
 
-    uint8_t _stepStyle; // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
-    int16_t _stepRpm;
+    uint8_t _style;     // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
+    int16_t _speed_rpm; // [revolutions / min]
+    float _speed_rps;   // [revolutions / sec]
+    uint32_t _pin_trigger_out_step;
+    uint32_t _pin_trigger_out_beat;
+    uint16_t _steps_per_rev; // Steps per revolution as specified by the stepper motor
 };
 
 #endif

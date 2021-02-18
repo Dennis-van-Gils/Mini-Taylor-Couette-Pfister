@@ -38,6 +38,7 @@
         SINGLE, DOUBLE: N=2
         INTERLEAVE    : N=4
         MICROSTEP     : N=16 when 8 microsteps, N=32 when 16 microsteps
+  - float _Re_estim: Estimated Reynolds number in case of water @ 22 'C
 
  ******************************************************************************/
 
@@ -70,8 +71,8 @@ uint8_t step_style = SINGLE;
 
 // Step signal on PIN13 for monitoring on oscilloscope
 uint32_t pin13;
-volatile uint32_t *mode13;
-volatile uint32_t *out13;
+uint32_t *mode13;
+uint32_t *out13;
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
