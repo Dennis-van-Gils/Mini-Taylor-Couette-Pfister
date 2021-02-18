@@ -327,7 +327,7 @@ void Adafruit_StepperMotor::step(uint16_t steps, uint8_t dir, uint8_t style) {
   while (steps--) {
     // Serial.println("step!"); Serial.println(uspers);
     onestep(dir, style);
-    delayMicroseconds(uspers);
+    delayMicroseconds(uspers); // <--- DvG: why???? We already use DvG_Stepper for time keeping
 #ifdef ESP8266
     yield(); // required for ESP8266
 #endif

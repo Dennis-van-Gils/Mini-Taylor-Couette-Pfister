@@ -30,6 +30,14 @@
   TODO:
   - capture functions and vars into classes
   - implement runSpeedToPosition for oscillatory movement
+  - Implement two different DO step signals:
+      - pin13 for each step
+      - pin12 for each 'beat', i.e. that minimum number of steps `N` making up a
+        repetitive pattern. Useful for oscilloscope investigation of a coil
+        voltage at constant stepper speed.
+        SINGLE, DOUBLE: N=2
+        INTERLEAVE    : N=4
+        MICROSTEP     : N=16 when 8 microsteps, N=32 when 16 microsteps
 
  ******************************************************************************/
 
