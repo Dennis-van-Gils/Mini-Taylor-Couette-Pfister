@@ -43,7 +43,8 @@ public:
         uint16_t steps_per_rev,
         uint8_t style);
 
-    void setStepStyle(uint8_t style);
+    void setStyle(uint8_t style);
+    uint8_t style();
 
     /// Set the target position. The run() function will try to move the motor
     /// from the current position to the target position set by the most
@@ -153,7 +154,7 @@ private:
     uint16_t _steps_per_rev; // [steps per rev] as specified by the stepper motor
     uint8_t _style;          // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
 
-    // The current motos speed
+    // The current motor speed
     // Positive is clockwise
     float _speed_rev_per_sec;
     float _speed_steps_per_sec;

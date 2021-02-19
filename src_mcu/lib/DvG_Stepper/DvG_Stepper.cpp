@@ -43,10 +43,19 @@ DvG_Stepper::DvG_Stepper(
     _beatstep = 0;
 }
 
-void DvG_Stepper::setStepStyle(uint8_t style)
+void DvG_Stepper::setStyle(uint8_t style)
 {
-    setSpeed(_speed_rev_per_sec);
+    _stepper->currentstep = 0;
     _style = style;
+    _beatstep = 0;
+    _set_trig_step_LO();
+    _set_trig_beat_LO();
+    setSpeed(_speed_rev_per_sec);
+}
+
+uint8_t DvG_Stepper::style()
+{
+    return _style;
 }
 
 void DvG_Stepper::moveTo(long absolute)
@@ -114,10 +123,8 @@ float DvG_Stepper::speed_steps_per_sec()
 
 void DvG_Stepper::step()
 {
-
     _toggle_trig_step();
     _process_beat();
-
     _stepper->onestep(_speed_rev_per_sec > 0 ? FORWARD : BACKWARD, _style);
 }
 

@@ -23,7 +23,7 @@
 
 //#define MOTORDEBUG
 
-#define MICROSTEPS 16 // 8 or 16
+#define MICROSTEPS 8 // 8 or 16
 
 #define MOTOR1_A 2
 #define MOTOR1_B 3
@@ -73,6 +73,7 @@ public:
     void release(void);
 
     friend class Adafruit_MotorShield; ///< Let MotorShield create StepperMotors
+    uint8_t currentstep;               // DvG: Was private before
 
 private:
     uint32_t usperstep;
@@ -80,7 +81,7 @@ private:
     uint8_t PWMApin, AIN1pin, AIN2pin;
     uint8_t PWMBpin, BIN1pin, BIN2pin;
     uint16_t revsteps; // # steps per revolution
-    uint8_t currentstep;
+    //uint8_t currentstep;  // DvG: We make it public to reset to 0
     Adafruit_MotorShield *MC;
     uint8_t steppernum;
 };

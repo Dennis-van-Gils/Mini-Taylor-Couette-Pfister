@@ -24,10 +24,14 @@
 #include "DvG_NeoPixel_Effects.h"
 #include "DvG_SerialCommand.h"
 
+/*
 // Redefine the default microstep division by Adafruit. Their library allows
 // it to be set to 8 or 16, where the latter is their default.
 #undef MICROSTEPS
 #define MICROSTEPS 8
+// YOU CAN"T DO THIS. Adafruit motorshield has other static `microstepcurve`
+// set, depending on MICROSTEPS
+*/
 
 // NEOPIXEL
 // --------
@@ -45,8 +49,8 @@ uint8_t running_effect_no = 1;
 #define STEPS_PER_REV 200
 #define STEPPER_PORT 2
 
-float speed = 2.;            // [rev per sec]
-uint8_t step_style = SINGLE; // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
+float speed = 0.8;              // [rev per sec]
+uint8_t step_style = MICROSTEP; // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -72,8 +76,26 @@ bool fRun = false;
 
 void printSpeed()
 {
-    Ser.println(Astepper.speed());
-    Ser.println(Astepper.speed_steps_per_sec());
+    Ser.print("f = ");
+    Ser.print(Astepper.speed());
+    Ser.print(" Hz, ");
+    Ser.print(Astepper.speed_steps_per_sec());
+    Ser.print(" steps/s, ");
+    switch (Astepper.style())
+    {
+    case SINGLE:
+        Ser.println("SINGLE");
+        break;
+    case DOUBLE:
+        Ser.println("DOUBLE");
+        break;
+    case INTERLEAVE:
+        Ser.println("INTERLEAVE");
+        break;
+    case MICROSTEP:
+        Ser.println("MICROSTEP");
+        break;
+    }
 }
 
 /*------------------------------------------------------------------------------
@@ -190,7 +212,7 @@ void loop()
             Ser.print("Only green: ");
             Ser.println(fOverrideWithGreen);
         }
-        else if (strncmp(strCmd, "s", 1) == 0)
+        else if (strncmp(strCmd, "f", 1) == 0)
         {
             speed = parseFloatInString(strCmd, 1);
             Astepper.setSpeed(speed);
@@ -210,26 +232,22 @@ void loop()
         }
         else if (strcmp(strCmd, "1") == 0)
         {
-            Ser.println("Single stepping");
-            Astepper.setStepStyle(SINGLE);
+            Astepper.setStyle(SINGLE);
             printSpeed();
         }
         else if (strcmp(strCmd, "2") == 0)
         {
-            Ser.println("Double stepping");
-            Astepper.setStepStyle(DOUBLE);
+            Astepper.setStyle(DOUBLE);
             printSpeed();
         }
         else if (strcmp(strCmd, "3") == 0)
         {
-            Ser.println("Interleaved stepping");
-            Astepper.setStepStyle(INTERLEAVE);
+            Astepper.setStyle(INTERLEAVE);
             printSpeed();
         }
         else if (strcmp(strCmd, "4") == 0)
         {
-            Ser.println("Micro stepping");
-            Astepper.setStepStyle(MICROSTEP);
+            Astepper.setStyle(MICROSTEP);
             printSpeed();
         }
         else if (strcmp(strCmd, "0") == 0)
