@@ -9,35 +9,11 @@
   x: max ~ 240 rpm SINGLE --> 800 steps per sec (needs 17 Volts)
   v: @ I2C clock = 1.6e6 we can achieve max ~1600 steps per sec
 
-  In AccelStepper.cpp
-    Change millis() timer to micros():
-      "
-      boolean AccelStepper::runSpeed()
-      {
-        unsigned long time = micros();
-      "
-    Change speed calculation:
-      "
-      void AccelStepper::setSpeed(float speed)
-      {
-        _speed = speed;
-        _stepInterval = abs(1000000.0 / _speed);
-      }
-      "
   In Adafruit_MotorShield.h
     #define MICROSTEPS 8
 
   TODO:
-  - capture functions and vars into classes
   - implement runSpeedToPosition for oscillatory movement
-  - Implement two different DO step signals:
-      - pin13 for each step
-      - pin12 for each 'beat', i.e. that minimum number of steps `N` making up a
-        repetitive pattern. Useful for oscilloscope investigation of a coil
-        voltage at constant stepper speed.
-        SINGLE, DOUBLE: N=2
-        INTERLEAVE    : N=4
-        MICROSTEP     : N=16 when 8 microsteps, N=32 when 16 microsteps
   - float _Re_estim: Estimated Reynolds number in case of water @ 22 'C
 
  ******************************************************************************/
@@ -69,11 +45,6 @@ int16_t step_rpm = 120;
 //uint8_t step_style = INTERLEAVE;
 uint8_t step_style = SINGLE;
 
-// Step signal on PIN13 for monitoring on oscilloscope
-uint32_t pin13;
-uint32_t *mode13;
-uint32_t *out13;
-
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
@@ -83,76 +54,12 @@ Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 #define STEPPER_PORT 2
 Adafruit_StepperMotor *stepper = AFMS.getStepper(STEPS_PER_REV, STEPPER_PORT);
 
+// Set a faster I2C SCL frequency
+#define I2C_SCL_FREQ 1600000 // [Hz] (800000)
+
 // AccelStepper
-void toggle_pin13()
-{
-    // Step signal on PIN13 for monitoring on oscilloscope
-    static bool fToggle = true;
-
-    if (fToggle)
-    {
-        *out13 |= pin13;
-    }
-    else
-    {
-        *out13 &= ~pin13;
-    }
-    fToggle = not(fToggle);
-}
-
-void toggle_pin13_v2()
-{
-    // Step signal on PIN13 for monitoring on oscilloscope
-    static bool fToggle = false;
-    static uint8_t cnt = 0;
-    uint8_t N;
-
-    switch (step_style)
-    {
-    case SINGLE:
-    case DOUBLE:
-    default:
-        N = 2;
-        break;
-    case INTERLEAVE:
-        N = 4;
-        break;
-    case MICROSTEP:
-        N = 16;
-        break;
-    }
-
-    if (cnt == 0)
-    {
-        if (fToggle)
-        {
-            *out13 |= pin13;
-        }
-        else
-        {
-            *out13 &= ~pin13;
-        }
-        fToggle = not(fToggle);
-    }
-
-    cnt++;
-    if (cnt == N)
-    {
-        cnt = 0;
-    }
-}
-
-void forwardstep()
-{
-    toggle_pin13_v2();
-    stepper->onestep(FORWARD, step_style);
-}
-
-void backwardstep()
-{
-    toggle_pin13_v2();
-    stepper->onestep(BACKWARD, step_style);
-}
+//void step_fwrd() { stepper->onestep(FORWARD, step_style); }
+//void step_back() { stepper->onestep(BACKWARD, step_style); }
 
 float rpm2sps(int16_t input_step_rpm)
 {
@@ -176,7 +83,8 @@ float rpm2sps(int16_t input_step_rpm)
     return step_sps;
 }
 
-DvG_Stepper Astepper(forwardstep, backwardstep);
+//DvG_Stepper Astepper(step_fwrd, step_back, step_style);
+DvG_Stepper Astepper(stepper, step_style);
 
 // SERIAL
 // ------
@@ -206,18 +114,11 @@ void setup()
     Ser.println(rpm2sps(step_rpm));
     Astepper.setSpeed(rpm2sps(step_rpm));
 
-// Set a faster I2C SCL frequency
-#define I2C_SCL_FREQ 1600000 // [Hz] (800000)
+    // Set a faster I2C SCL frequency
     Wire.begin();
     sercom3.disableWIRE();
     SERCOM3->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * I2C_SCL_FREQ) - 1;
     sercom3.enableWIRE();
-
-    // Step signal on PIN13 for monitoring on oscilloscope
-    pin13 = digitalPinToBitMask(13);
-    mode13 = portModeRegister(digitalPinToPort(13));
-    out13 = portOutputRegister(digitalPinToPort(13));
-    *mode13 |= pin13; // set pin 13 port as ouput
 
     // Start up motor unpowered?
     if (false)
@@ -242,6 +143,7 @@ void loop()
     static bool fOverrideWithWhite = false;
     static bool fOverrideWithGreen = true;
 
+    /*
     now = micros();
     if (now - tick > T_oscil)
     {
@@ -249,6 +151,7 @@ void loop()
         step_rpm = -step_rpm;
         Astepper.setSpeed(rpm2sps(step_rpm));
     }
+    */
 
     // -------------------------------------------------------------------------
     //   Process incoming serial command when available
@@ -349,28 +252,28 @@ void loop()
         else if (strcmp(strCmd, "1") == 0)
         {
             Ser.println("Single stepping");
-            step_style = SINGLE;
+            Astepper.setStepStyle(SINGLE);
             Ser.println(rpm2sps(step_rpm));
             Astepper.setSpeed(rpm2sps(step_rpm));
         }
         else if (strcmp(strCmd, "2") == 0)
         {
             Ser.println("Double stepping");
-            step_style = DOUBLE;
+            Astepper.setStepStyle(DOUBLE);
             Ser.println(rpm2sps(step_rpm));
             Astepper.setSpeed(rpm2sps(step_rpm));
         }
         else if (strcmp(strCmd, "3") == 0)
         {
             Ser.println("Interleaved stepping");
-            step_style = INTERLEAVE;
+            Astepper.setStepStyle(INTERLEAVE);
             Ser.println(rpm2sps(step_rpm));
             Astepper.setSpeed(rpm2sps(step_rpm));
         }
         else if (strcmp(strCmd, "4") == 0)
         {
             Ser.println("Micro stepping");
-            step_style = MICROSTEP;
+            Astepper.setStepStyle(MICROSTEP);
             Ser.println(rpm2sps(step_rpm));
             Astepper.setSpeed(rpm2sps(step_rpm));
         }

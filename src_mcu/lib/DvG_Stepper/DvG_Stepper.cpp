@@ -5,23 +5,43 @@ Heavily modified code from:
   AccelStepper.cpp
   Copyright (C) 2009 Mike McCauley
   $Id: AccelStepper.cpp,v 1.2 2010/10/24 07:46:18 mikem Exp mikem $
-
-  Major changes:
-  * Internal step timer is based on micros() instead of millis()
-  * No acceleration. Velocity is always a constant.
 */
 
 #include "DvG_Stepper.h"
 
-DvG_Stepper::DvG_Stepper(void (*forward)(), void (*backward)())
+DvG_Stepper::DvG_Stepper(Adafruit_StepperMotor *stepper, uint8_t style)
 {
+    _stepper = stepper;
+    _style = style;
+
     _currentPos = 0;
     _targetPos = 0;
     _speed = 0.0;
     _stepInterval = 0;
     _lastStepTime = 0;
-    _forward = forward;
-    _backward = backward;
+    _style = style;
+
+    // Set up direct port manipulation for the trigger-out signals
+    volatile uint32_t *mode;
+
+    _mask_trig_step = digitalPinToBitMask(PIN_TRIG_STEP);
+    _port_trig_step = portOutputRegister(digitalPinToPort(PIN_TRIG_STEP));
+    mode = portModeRegister(digitalPinToPort(PIN_TRIG_STEP));
+    *mode |= _mask_trig_step; // Set pin to ouput
+    set_trig_step_LO();       // Set pin to low
+
+    _mask_trig_beat = digitalPinToBitMask(PIN_TRIG_BEAT);
+    _port_trig_beat = portOutputRegister(digitalPinToPort(PIN_TRIG_BEAT));
+    mode = portModeRegister(digitalPinToPort(PIN_TRIG_BEAT));
+    *mode |= _mask_trig_beat; // Set pin to ouput
+    set_trig_beat_LO();       // Set pin to low
+
+    _substep = 0;
+}
+
+void DvG_Stepper::setStepStyle(uint8_t style)
+{
+    _style = style;
 }
 
 void DvG_Stepper::moveTo(long absolute)
@@ -68,14 +88,36 @@ float DvG_Stepper::speed()
 
 void DvG_Stepper::step()
 {
-    if (_speed > 0)
+    uint8_t N;
+    toggle_trig_step();
+
+    switch (_style)
     {
-        _forward();
+    case SINGLE:
+    case DOUBLE:
+    default:
+        N = 2;
+        break;
+    case INTERLEAVE:
+        N = 4;
+        break;
+    case MICROSTEP:
+        N = 16;
+        break;
     }
-    else
+
+    if (_substep == 0)
     {
-        _backward();
+        toggle_trig_beat();
     }
+
+    _substep++;
+    if (_substep == N)
+    {
+        _substep = 0;
+    }
+
+    _stepper->onestep(_speed > 0 ? FORWARD : BACKWARD, _style);
 }
 
 bool DvG_Stepper::run()
@@ -135,3 +177,10 @@ void DvG_Stepper::runToNewPosition(long position)
     moveTo(position);
     runToPosition();
 }
+
+void DvG_Stepper::set_trig_step_LO() { *_port_trig_step &= ~_mask_trig_step; }
+void DvG_Stepper::set_trig_step_HI() { *_port_trig_step |= _mask_trig_step; }
+void DvG_Stepper::toggle_trig_step() { *_port_trig_step ^= _mask_trig_step; }
+void DvG_Stepper::set_trig_beat_LO() { *_port_trig_beat &= ~_mask_trig_beat; }
+void DvG_Stepper::set_trig_beat_HI() { *_port_trig_beat |= _mask_trig_beat; }
+void DvG_Stepper::toggle_trig_beat() { *_port_trig_beat ^= _mask_trig_beat; }

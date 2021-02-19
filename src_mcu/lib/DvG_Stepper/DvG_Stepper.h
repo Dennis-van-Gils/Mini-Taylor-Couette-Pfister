@@ -5,6 +5,10 @@ Heavily modified code from:
   AccelStepper.cpp
   Copyright (C) 2009 Mike McCauley
   $Id: AccelStepper.cpp,v 1.2 2010/10/24 07:46:18 mikem Exp mikem $
+
+ Major changes:
+  * Internal step timer is based on micros() instead of millis()
+  * No acceleration. Velocity is always a constant.
 */
 
 #ifndef DvG_Stepper_h
@@ -12,6 +16,19 @@ Heavily modified code from:
 
 #include <Arduino.h>
 #include "Adafruit_MotorShield.h"
+
+// The following two digital outputs will pulse along with the stepper.
+// These signals can be used as a trigger source for monitoring the coil step
+// voltages on a oscilloscope.
+// 'step': Alternate low/high per step.
+// 'beat': That minimum number of steps `N` making up a repetitive pattern.
+//         Useful for oscilloscope investigation of a coil voltage at constant
+//         stepper speed.
+//            SINGLE, DOUBLE: N=2
+//            INTERLEAVE    : N=4
+//             MICROSTEP    : N=16 when 8 microsteps, N=32 when 16 microsteps
+#define PIN_TRIG_STEP 12
+#define PIN_TRIG_BEAT 13
 
 class DvG_Stepper
 {
@@ -21,9 +38,9 @@ public:
     /// functions at frequent enough intervals. Current Position is set to 0, target
     /// position is set to 0.
     /// Any motor initialization should happen before hand, no pins are used or initialized.
-    /// \param[in] forward void-returning procedure that will make a forward step
-    /// \param[in] backward void-returning procedure that will make a backward step
-    DvG_Stepper(void (*forward)(), void (*backward)());
+    DvG_Stepper(Adafruit_StepperMotor *stepper, uint8_t style);
+
+    void setStepStyle(uint8_t style);
 
     /// Set the target position. The run() function will try to move the motor
     /// from the current position to the target position set by the most
@@ -130,12 +147,25 @@ private:
     // NEWLY ADDED
     // -----------
 
-    uint8_t _style;     // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
-    int16_t _speed_rpm; // [revolutions / min]
-    float _speed_rps;   // [revolutions / sec]
-    uint32_t _pin_trigger_out_step;
-    uint32_t _pin_trigger_out_beat;
+    void set_trig_step_LO();
+    void set_trig_step_HI();
+    void set_trig_beat_LO();
+    void set_trig_beat_HI();
+    void toggle_trig_step();
+    void toggle_trig_beat();
+
+    Adafruit_StepperMotor *_stepper;
+    uint8_t _style;          // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
+    int16_t _speed_rpm;      // [revolutions / min]
+    float _speed_rps;        // [revolutions / sec]
     uint16_t _steps_per_rev; // Steps per revolution as specified by the stepper motor
+
+    // For direct port manipulation, instead of the slower 'digitalWrite()'
+    uint32_t _mask_trig_step;
+    uint32_t _mask_trig_beat;
+    volatile uint32_t *_port_trig_step;
+    volatile uint32_t *_port_trig_beat;
+    uint8_t _substep = 0;
 };
 
 #endif
