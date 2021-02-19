@@ -123,9 +123,9 @@ float DvG_Stepper::speed_steps_per_sec()
 
 void DvG_Stepper::step()
 {
+    _stepper->onestep(_speed_rev_per_sec > 0 ? FORWARD : BACKWARD, _style);
     _toggle_trig_step();
     _process_beat();
-    _stepper->onestep(_speed_rev_per_sec > 0 ? FORWARD : BACKWARD, _style);
 }
 
 bool DvG_Stepper::run()

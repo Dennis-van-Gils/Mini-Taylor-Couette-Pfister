@@ -49,7 +49,7 @@ uint8_t running_effect_no = 1;
 #define STEPS_PER_REV 200
 #define STEPPER_PORT 2
 
-float speed = 0.8;              // [rev per sec]
+float speed = 1.0;              // [rev per sec]
 uint8_t step_style = MICROSTEP; // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
 
 // Create the motor shield object with the default I2C address
@@ -115,7 +115,6 @@ void setup()
     // Stepper
     AFMS.begin(); // Create with the default frequency 1.6KHz
     Astepper.setSpeed(speed);
-    printSpeed();
 
     // Set a faster I2C SCL frequency
     Wire.begin();
@@ -131,6 +130,7 @@ void setup()
     }
 
     Ser.println("done.");
+    printSpeed();
 }
 
 /*------------------------------------------------------------------------------
