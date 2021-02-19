@@ -9,22 +9,25 @@
   x: max ~ 240 rpm SINGLE --> 800 steps per sec (needs 17 Volts)
   v: @ I2C clock = 1.6e6 we can achieve max ~1600 steps per sec
 
-  In Adafruit_MotorShield.h
-    #define MICROSTEPS 8
-
   TODO:
   - implement runSpeedToPosition for oscillatory movement
-  - float _Re_estim: Estimated Reynolds number in case of water @ 22 'C
-
+  - float `_Re_estim`: Estimated Reynolds number in case of water @ 22 'C
+  - Move `fRun` into DvG_Stepper. Perhaps create `update_step()` with inside
+    the `fRun` check. Introduce `start()`, `stop()` into DvG_Stepper.
  ******************************************************************************/
 
 #include <Arduino.h>
 #include "Wire.h"
-#include "DvG_Stepper.h"
 #include "Adafruit_MotorShield.h"
 #include "Adafruit_NeoPixel_ZeroDMA.h"
+#include "DvG_Stepper.h"
 #include "DvG_NeoPixel_Effects.h"
 #include "DvG_SerialCommand.h"
+
+// Redefine the default microstep division by Adafruit. Their library allows
+// it to be set to 8 or 16, where the latter is their default.
+#undef MICROSTEPS
+#define MICROSTEPS 8
 
 // NEOPIXEL
 // --------
@@ -39,52 +42,24 @@ uint8_t running_effect_no = 1;
 
 // STEPPER
 // -------
-int16_t step_rpm = 120;
-//uint8_t step_style = SINGLE;
-//uint8_t step_style = DOUBLE;
-//uint8_t step_style = INTERLEAVE;
-uint8_t step_style = SINGLE;
+#define STEPS_PER_REV 200
+#define STEPPER_PORT 2
+
+float speed = 2.;            // [rev per sec]
+uint8_t step_style = SINGLE; // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
 
 // Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 
 // Connect a stepper motor with 200 steps per revolution (1.8 degree)
 // to motor port #2 (M3 and M4)
-#define STEPS_PER_REV 200
-#define STEPPER_PORT 2
 Adafruit_StepperMotor *stepper = AFMS.getStepper(STEPS_PER_REV, STEPPER_PORT);
+
+// Advanced stepper control
+DvG_Stepper Astepper(stepper, STEPS_PER_REV, step_style);
 
 // Set a faster I2C SCL frequency
 #define I2C_SCL_FREQ 1600000 // [Hz] (800000)
-
-// AccelStepper
-//void step_fwrd() { stepper->onestep(FORWARD, step_style); }
-//void step_back() { stepper->onestep(BACKWARD, step_style); }
-
-float rpm2sps(int16_t input_step_rpm)
-{
-    float step_sps;
-
-    switch (step_style)
-    {
-    case SINGLE:
-    case DOUBLE:
-    default:
-        step_sps = input_step_rpm / 60. * STEPS_PER_REV;
-        break;
-    case INTERLEAVE:
-        step_sps = input_step_rpm / 60. * STEPS_PER_REV * 2;
-        break;
-    case MICROSTEP:
-        step_sps = input_step_rpm / 60. * STEPS_PER_REV * 8;
-        break;
-    }
-
-    return step_sps;
-}
-
-//DvG_Stepper Astepper(step_fwrd, step_back, step_style);
-DvG_Stepper Astepper(stepper, step_style);
 
 // SERIAL
 // ------
@@ -94,6 +69,12 @@ DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 // OTHER
 // -----
 bool fRun = false;
+
+void printSpeed()
+{
+    Ser.println(Astepper.speed());
+    Ser.println(Astepper.speed_steps_per_sec());
+}
 
 /*------------------------------------------------------------------------------
     Setup
@@ -111,8 +92,8 @@ void setup()
 
     // Stepper
     AFMS.begin(); // Create with the default frequency 1.6KHz
-    Ser.println(rpm2sps(step_rpm));
-    Astepper.setSpeed(rpm2sps(step_rpm));
+    Astepper.setSpeed(speed);
+    printSpeed();
 
     // Set a faster I2C SCL frequency
     Wire.begin();
@@ -148,8 +129,8 @@ void loop()
     if (now - tick > T_oscil)
     {
         tick += T_oscil;
-        step_rpm = -step_rpm;
-        Astepper.setSpeed(rpm2sps(step_rpm));
+        speed = -speed;
+        Astepper.setSpeed(speed);
     }
     */
 
@@ -211,71 +192,45 @@ void loop()
         }
         else if (strncmp(strCmd, "s", 1) == 0)
         {
-            step_rpm = floor(parseFloatInString(strCmd, 1));
-            step_rpm = constrain(step_rpm, 0, 600);
-
-            Ser.print("step_rpm: ");
-            Ser.println(step_rpm);
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            speed = parseFloatInString(strCmd, 1);
+            Astepper.setSpeed(speed);
+            printSpeed();
         }
         else if (strcmp(strCmd, ",") == 0)
         {
-            if (step_rpm > 0)
-            {
-                step_rpm -= 5;
-            }
-            else
-            {
-                step_rpm += 5;
-            }
-            Ser.print("step_rpm: ");
-            Ser.println(abs(step_rpm));
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            speed = (speed > 0 ? speed - .05 : speed + .05);
+            Astepper.setSpeed(speed);
+            printSpeed();
         }
         else if (strcmp(strCmd, ".") == 0)
         {
-            if (step_rpm > 0)
-            {
-                step_rpm += 5;
-            }
-            else
-            {
-                step_rpm -= 5;
-            }
-            Ser.print("step_rpm: ");
-            Ser.println(abs(step_rpm));
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            speed = (speed > 0 ? speed + .05 : speed - .05);
+            Astepper.setSpeed(speed);
+            printSpeed();
         }
         else if (strcmp(strCmd, "1") == 0)
         {
             Ser.println("Single stepping");
             Astepper.setStepStyle(SINGLE);
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            printSpeed();
         }
         else if (strcmp(strCmd, "2") == 0)
         {
             Ser.println("Double stepping");
             Astepper.setStepStyle(DOUBLE);
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            printSpeed();
         }
         else if (strcmp(strCmd, "3") == 0)
         {
             Ser.println("Interleaved stepping");
             Astepper.setStepStyle(INTERLEAVE);
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            printSpeed();
         }
         else if (strcmp(strCmd, "4") == 0)
         {
             Ser.println("Micro stepping");
             Astepper.setStepStyle(MICROSTEP);
-            Ser.println(rpm2sps(step_rpm));
-            Astepper.setSpeed(rpm2sps(step_rpm));
+            printSpeed();
         }
         else if (strcmp(strCmd, "0") == 0)
         {

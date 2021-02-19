@@ -38,7 +38,10 @@ public:
     /// functions at frequent enough intervals. Current Position is set to 0, target
     /// position is set to 0.
     /// Any motor initialization should happen before hand, no pins are used or initialized.
-    DvG_Stepper(Adafruit_StepperMotor *stepper, uint8_t style);
+    DvG_Stepper(
+        Adafruit_StepperMotor *stepper,
+        uint16_t steps_per_rev,
+        uint8_t style);
 
     void setStepStyle(uint8_t style);
 
@@ -78,16 +81,15 @@ public:
     void setCurrentPosition(long position);
 
     /// Sets the desired constant speed for use with runSpeed().
-    /// \param[in] speed The desired constant speed in steps per
-    /// second. Positive is clockwise. Speeds of more than 1000 steps per
-    /// second are unreliable. Very slow speeds may be set (eg 0.00027777 for
-    /// once per hour, approximately. Speed accuracy depends on the Arduino
-    /// crystal. Jitter depends on how frequently you call the runSpeed() function.
+    /// \param[in] speed The desired constant speed in [rev per sec].
+    /// Positive is clockwise.
     void setSpeed(float speed);
 
-    /// The most recently set speed
-    /// \return the most recent speed in steps per second
+    /// \return The speed in [rev per sec]
     float speed();
+
+    /// \return The speed in [steps per sec]
+    float speed_steps_per_sec();
 
     /// Poll the motor and step it if a step is due, implementing
     /// constant velocity to achive the target position. You must call this as
@@ -128,44 +130,43 @@ private:
     /// max speed, acceleration and deceleration
     long _targetPos; // Steps
 
-    /// The current motos speed in steps per second
-    /// Positive is clockwise
-    float _speed; // Steps per second
-
     /// The current interval between steps in milliseconds.
     unsigned long _stepInterval;
 
     /// The last step time in milliseconds
     unsigned long _lastStepTime;
 
-    // The pointer to a forward-step procedure
-    void (*_forward)();
-
-    // The pointer to a backward-step procedure
-    void (*_backward)();
-
     // NEWLY ADDED
     // -----------
 
-    void set_trig_step_LO();
-    void set_trig_step_HI();
-    void set_trig_beat_LO();
-    void set_trig_beat_HI();
-    void toggle_trig_step();
-    void toggle_trig_beat();
+    void _set_trig_step_LO();
+    void _set_trig_step_HI();
+    void _set_trig_beat_LO();
+    void _set_trig_beat_HI();
+    void _toggle_trig_step();
+    void _toggle_trig_beat();
+    void _process_beat();
+
+    //void setSpeedRpm();
 
     Adafruit_StepperMotor *_stepper;
+    uint16_t _steps_per_rev; // [steps per rev] as specified by the stepper motor
     uint8_t _style;          // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
-    int16_t _speed_rpm;      // [revolutions / min]
-    float _speed_rps;        // [revolutions / sec]
-    uint16_t _steps_per_rev; // Steps per revolution as specified by the stepper motor
+
+    // The current motos speed
+    // Positive is clockwise
+    float _speed_rev_per_sec;
+    float _speed_steps_per_sec;
+    // Speeds of more than 1000 steps per second are unreliable. Speed
+    // accuracy depends on the Arduino crystal. Jitter depends on how
+    // frequently you call the runSpeed() function.
 
     // For direct port manipulation, instead of the slower 'digitalWrite()'
     uint32_t _mask_trig_step;
     uint32_t _mask_trig_beat;
     volatile uint32_t *_port_trig_step;
     volatile uint32_t *_port_trig_beat;
-    uint8_t _substep = 0;
+    uint8_t _beatstep = 0;
 };
 
 #endif

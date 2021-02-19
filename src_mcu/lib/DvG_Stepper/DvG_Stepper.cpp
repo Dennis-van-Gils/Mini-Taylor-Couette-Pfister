@@ -9,17 +9,21 @@ Heavily modified code from:
 
 #include "DvG_Stepper.h"
 
-DvG_Stepper::DvG_Stepper(Adafruit_StepperMotor *stepper, uint8_t style)
+DvG_Stepper::DvG_Stepper(
+    Adafruit_StepperMotor *stepper,
+    uint16_t steps_per_rev,
+    uint8_t style)
 {
     _stepper = stepper;
+    _steps_per_rev = steps_per_rev;
     _style = style;
 
     _currentPos = 0;
     _targetPos = 0;
-    _speed = 0.0;
+    _speed_rev_per_sec = 0.0;
+    _speed_steps_per_sec = 0.0;
     _stepInterval = 0;
     _lastStepTime = 0;
-    _style = style;
 
     // Set up direct port manipulation for the trigger-out signals
     volatile uint32_t *mode;
@@ -28,19 +32,20 @@ DvG_Stepper::DvG_Stepper(Adafruit_StepperMotor *stepper, uint8_t style)
     _port_trig_step = portOutputRegister(digitalPinToPort(PIN_TRIG_STEP));
     mode = portModeRegister(digitalPinToPort(PIN_TRIG_STEP));
     *mode |= _mask_trig_step; // Set pin to ouput
-    set_trig_step_LO();       // Set pin to low
+    _set_trig_step_LO();      // Set pin to low
 
     _mask_trig_beat = digitalPinToBitMask(PIN_TRIG_BEAT);
     _port_trig_beat = portOutputRegister(digitalPinToPort(PIN_TRIG_BEAT));
     mode = portModeRegister(digitalPinToPort(PIN_TRIG_BEAT));
     *mode |= _mask_trig_beat; // Set pin to ouput
-    set_trig_beat_LO();       // Set pin to low
+    _set_trig_beat_LO();      // Set pin to low
 
-    _substep = 0;
+    _beatstep = 0;
 }
 
 void DvG_Stepper::setStepStyle(uint8_t style)
 {
+    setSpeed(_speed_rev_per_sec);
     _style = style;
 }
 
@@ -75,49 +80,45 @@ void DvG_Stepper::setCurrentPosition(long position)
     _currentPos = position;
 }
 
-void DvG_Stepper::setSpeed(float speed)
+void DvG_Stepper::setSpeed(float rev_per_sec)
 {
-    _speed = speed;
-    _stepInterval = abs(1000000.0 / _speed);
-}
-
-float DvG_Stepper::speed()
-{
-    return _speed;
-}
-
-void DvG_Stepper::step()
-{
-    uint8_t N;
-    toggle_trig_step();
+    _speed_rev_per_sec = rev_per_sec;
 
     switch (_style)
     {
     case SINGLE:
     case DOUBLE:
     default:
-        N = 2;
+        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev;
         break;
     case INTERLEAVE:
-        N = 4;
+        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev * 2;
         break;
     case MICROSTEP:
-        N = 16;
+        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev * MICROSTEPS;
         break;
     }
 
-    if (_substep == 0)
-    {
-        toggle_trig_beat();
-    }
+    _stepInterval = abs(1000000.0 / _speed_steps_per_sec);
+}
 
-    _substep++;
-    if (_substep == N)
-    {
-        _substep = 0;
-    }
+float DvG_Stepper::speed()
+{
+    return _speed_rev_per_sec;
+}
 
-    _stepper->onestep(_speed > 0 ? FORWARD : BACKWARD, _style);
+float DvG_Stepper::speed_steps_per_sec()
+{
+    return _speed_steps_per_sec;
+}
+
+void DvG_Stepper::step()
+{
+
+    _toggle_trig_step();
+    _process_beat();
+
+    _stepper->onestep(_speed_rev_per_sec > 0 ? FORWARD : BACKWARD, _style);
 }
 
 bool DvG_Stepper::run()
@@ -142,11 +143,11 @@ bool DvG_Stepper::runSpeed()
 
     if (time > _lastStepTime + _stepInterval)
     {
-        if (_speed > 0)
+        if (_speed_rev_per_sec > 0)
         {
             _currentPos += 1;
         }
-        else if (_speed < 0)
+        else if (_speed_rev_per_sec < 0)
         {
             _currentPos -= 1;
         }
@@ -178,9 +179,40 @@ void DvG_Stepper::runToNewPosition(long position)
     runToPosition();
 }
 
-void DvG_Stepper::set_trig_step_LO() { *_port_trig_step &= ~_mask_trig_step; }
-void DvG_Stepper::set_trig_step_HI() { *_port_trig_step |= _mask_trig_step; }
-void DvG_Stepper::toggle_trig_step() { *_port_trig_step ^= _mask_trig_step; }
-void DvG_Stepper::set_trig_beat_LO() { *_port_trig_beat &= ~_mask_trig_beat; }
-void DvG_Stepper::set_trig_beat_HI() { *_port_trig_beat |= _mask_trig_beat; }
-void DvG_Stepper::toggle_trig_beat() { *_port_trig_beat ^= _mask_trig_beat; }
+void DvG_Stepper::_set_trig_step_LO() { *_port_trig_step &= ~_mask_trig_step; }
+void DvG_Stepper::_set_trig_step_HI() { *_port_trig_step |= _mask_trig_step; }
+void DvG_Stepper::_toggle_trig_step() { *_port_trig_step ^= _mask_trig_step; }
+void DvG_Stepper::_set_trig_beat_LO() { *_port_trig_beat &= ~_mask_trig_beat; }
+void DvG_Stepper::_set_trig_beat_HI() { *_port_trig_beat |= _mask_trig_beat; }
+void DvG_Stepper::_toggle_trig_beat() { *_port_trig_beat ^= _mask_trig_beat; }
+
+void DvG_Stepper::_process_beat()
+{
+    uint8_t N;
+
+    switch (_style)
+    {
+    case SINGLE:
+    case DOUBLE:
+    default:
+        N = 2;
+        break;
+    case INTERLEAVE:
+        N = 4;
+        break;
+    case MICROSTEP:
+        N = 16;
+        break;
+    }
+
+    if (_beatstep == 0)
+    {
+        _toggle_trig_beat();
+    }
+
+    _beatstep++;
+    if (_beatstep == N)
+    {
+        _beatstep = 0;
+    }
+}
