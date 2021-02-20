@@ -12,6 +12,16 @@
   TODO:
   - implement runSpeedToPosition for oscillatory movement
   - float `_Re_estim`: Estimated Reynolds number in case of water @ 22 'C
+
+  STRONG SILENT DRIVING (I2C_SCL_FREQ = 1600000):
+    f [Hz]  style               V_motor [V] comment
+    1.5     double              6
+    2.0     single or double    7
+    4.0     single              18
+    4.5     single              19          safe max speed
+
+  DO NOT EXCEED V_motor ABOVE 19 V. At 20 V the current all of a sudden jumps up
+  to huge values (> 0.5 A).
  ******************************************************************************/
 
 #include <Arduino.h>
@@ -51,7 +61,7 @@ DvG_Stepper Astepper(stepper, STEPS_PER_REV);
 // @ 1.6 MHz --> safe max 2400 steps / sec
 // @ 2.0 MHz --> did not run
 // @ 3.4 MHz --> did not run
-#define I2C_SCL_FREQ 1000000 // [Hz]
+#define I2C_SCL_FREQ 1600000 // [Hz]
 
 // SERIAL
 // ------
