@@ -12,8 +12,6 @@
   TODO:
   - implement runSpeedToPosition for oscillatory movement
   - float `_Re_estim`: Estimated Reynolds number in case of water @ 22 'C
-  - Move `fRun` into DvG_Stepper. Perhaps create `update_step()` with inside
-    the `fRun` check. Introduce `start()`, `stop()` into DvG_Stepper.
  ******************************************************************************/
 
 #include <Arduino.h>
@@ -38,41 +36,31 @@
 #define PIN_NEOPIXEL 5
 #define NUM_LEDS 16
 uint8_t brightness = 50; // 200
+uint8_t running_effect_no = 1;
 
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, 5, NEO_GRBW + NEO_KHZ800);
 Adafruit_NeoPixel_ZeroDMA strip(NUM_LEDS, PIN_NEOPIXEL, NEO_GRBW + NEO_KHZ800);
 DvG_NeoPixel_Effects npe = DvG_NeoPixel_Effects(&strip);
-uint8_t running_effect_no = 1;
 
 // STEPPER
 // -------
-#define STEPS_PER_REV 200
-#define STEPPER_PORT 2
+#define STEPS_PER_REV 200 // As specified by the stepper motor
+#define STEPPER_PORT 2    // Motor connected to port #2 (M3 and M4)
+float speed = 1.0;        // [rev per sec]
 
-float speed = 1.0;              // [rev per sec]
-uint8_t step_style = MICROSTEP; // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
-
-// Create the motor shield object with the default I2C address
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-
-// Connect a stepper motor with 200 steps per revolution (1.8 degree)
-// to motor port #2 (M3 and M4)
 Adafruit_StepperMotor *stepper = AFMS.getStepper(STEPS_PER_REV, STEPPER_PORT);
+DvG_Stepper Astepper(stepper, STEPS_PER_REV);
 
-// Advanced stepper control
-DvG_Stepper Astepper(stepper, STEPS_PER_REV, step_style);
-
-// Set a faster I2C SCL frequency
-#define I2C_SCL_FREQ 1600000 // [Hz] (800000)
+// Set a faster I2C clock frequency, beneficial for faster stepping.
+// Arduino M0 Pro, SAMD21 chipset specs:
+//  supports: 100 kHz, 400 kHz, 1 MHz, 3.4 MHz
+//  default : 100 kHz (?)
+#define I2C_SCL_FREQ 1000000 // [Hz]
 
 // SERIAL
 // ------
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
-
-// OTHER
-// -----
-bool fRun = false;
 
 void printSpeed()
 {
@@ -113,21 +101,17 @@ void setup()
     strip.show(); // Initialize all pixels to 'off'
 
     // Stepper
-    AFMS.begin(); // Create with the default frequency 1.6KHz
+    AFMS.begin(); // Create with the default maximum PWM frequency of 1.6 kHz (1526 Hz according to spec sheet)
+    Astepper.turn_off();
     Astepper.setSpeed(speed);
+    Astepper.setStyle(SINGLE); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
 
     // Set a faster I2C SCL frequency
     Wire.begin();
-    sercom3.disableWIRE();
-    SERCOM3->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * I2C_SCL_FREQ) - 1;
-    sercom3.enableWIRE();
-
-    // Start up motor unpowered?
-    if (false)
-    {
-        fRun = false;
-        stepper->release();
-    }
+    Wire.setClock(I2C_SCL_FREQ);
+    //sercom3.disableWIRE();
+    //SERCOM3->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * I2C_SCL_FREQ) - 1;
+    //sercom3.enableWIRE();
 
     Ser.println("done.");
     printSpeed();
@@ -146,21 +130,9 @@ void loop()
     static bool fOverrideWithWhite = false;
     static bool fOverrideWithGreen = true;
 
-    /*
-    now = micros();
-    if (now - tick > T_oscil)
-    {
-        tick += T_oscil;
-        speed = -speed;
-        Astepper.setSpeed(speed);
-    }
-    */
-
     // -------------------------------------------------------------------------
     //   Process incoming serial command when available
     // -------------------------------------------------------------------------
-
-    //Ser.println(millis());
 
     if (sc.available())
     {
@@ -168,32 +140,18 @@ void loop()
 
         if (strcmp(strCmd, "?") == 0)
         {
-            Ser.println("Combined NeoPixel and Adafruit motor shield test");
+            Ser.println("Mini Taylor-Couette demo Pfister");
         }
         else if (strcmp(strCmd, "=") == 0)
         {
-            if (brightness > 245)
-            {
-                brightness = 255;
-            }
-            else
-            {
-                brightness += 10;
-            }
+            brightness > 245 ? brightness = 255 : brightness += 10;
             Ser.print("brightness: ");
             Ser.println(brightness);
             strip.setBrightness(brightness);
         }
         else if (strcmp(strCmd, "-") == 0)
         {
-            if (brightness < 10)
-            {
-                brightness = 0;
-            }
-            else
-            {
-                brightness -= 10;
-            }
+            brightness < 10 ? brightness = 0 : brightness -= 10;
             Ser.print("brightness: ");
             Ser.println(brightness);
             strip.setBrightness(brightness);
@@ -250,27 +208,16 @@ void loop()
             Astepper.setStyle(MICROSTEP);
             printSpeed();
         }
-        else if (strcmp(strCmd, "0") == 0)
-        {
-            Ser.println("SINGLE step");
-            stepper->onestep(FORWARD, SINGLE); // tune to single step starting pos
-        }
-        else if (strcmp(strCmd, "9") == 0)
-        {
-            Ser.println("DOUBLE step");
-            stepper->onestep(FORWARD, DOUBLE); // tune to single step starting pos
-        }
         else
         {
-            if (fRun)
+            if (Astepper.running())
             {
-                fRun = false;
-                stepper->release();
+                Astepper.turn_off();
                 Ser.println("Release");
             }
             else
             {
-                fRun = true;
+                Astepper.turn_on();
                 Ser.println("Run");
             }
         }
@@ -290,7 +237,18 @@ void loop()
         npe.rainbowTemporal(50);
     }
 
-    if (fRun)
+    /*
+    now = micros();
+    if (now - tick > T_oscil)
+    {
+        tick += T_oscil;
+        speed = -speed;
+        Astepper.setSpeed(speed);
+    }
+    */
+
+    // Step when necessary
+    if (Astepper.running())
     {
         Astepper.runSpeed();
     }

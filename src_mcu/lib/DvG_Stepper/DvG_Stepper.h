@@ -40,11 +40,14 @@ public:
     /// Any motor initialization should happen before hand, no pins are used or initialized.
     DvG_Stepper(
         Adafruit_StepperMotor *stepper,
-        uint16_t steps_per_rev,
-        uint8_t style);
+        uint16_t steps_per_rev);
 
     void setStyle(uint8_t style);
     uint8_t style();
+
+    void turn_on();
+    void turn_off();
+    bool running();
 
     /// Set the target position. The run() function will try to move the motor
     /// from the current position to the target position set by the most
@@ -153,6 +156,7 @@ private:
     Adafruit_StepperMotor *_stepper;
     uint16_t _steps_per_rev; // [steps per rev] as specified by the stepper motor
     uint8_t _style;          // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
+    bool _running;
 
     // The current motor speed
     // Positive is clockwise

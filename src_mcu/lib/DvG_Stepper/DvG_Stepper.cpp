@@ -11,12 +11,12 @@ Heavily modified code from:
 
 DvG_Stepper::DvG_Stepper(
     Adafruit_StepperMotor *stepper,
-    uint16_t steps_per_rev,
-    uint8_t style)
+    uint16_t steps_per_rev)
 {
     _stepper = stepper;
     _steps_per_rev = steps_per_rev;
-    _style = style;
+    _style = SINGLE;
+    _running = false;
 
     _currentPos = 0;
     _targetPos = 0;
@@ -41,6 +41,22 @@ DvG_Stepper::DvG_Stepper(
     _set_trig_beat_LO();      // Set pin to low
 
     _beatstep = 0;
+}
+
+void DvG_Stepper::turn_on()
+{
+    _running = true;
+}
+
+void DvG_Stepper::turn_off()
+{
+    _running = false;
+    _stepper->release();
+}
+
+bool DvG_Stepper::running()
+{
+    return _running;
 }
 
 void DvG_Stepper::setStyle(uint8_t style)
