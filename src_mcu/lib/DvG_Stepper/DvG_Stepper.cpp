@@ -61,27 +61,30 @@ bool DvG_Stepper::running()
 
 void DvG_Stepper::setStyle(uint8_t style)
 {
-    //_stepper->currentstep = 0;
-    //_beatstep = 0;
-    //_set_trig_step_LO();
-    //_set_trig_beat_LO();
-
-    // TODO: use Adafruit_Motorshield::currentstep to calculate
-    // newly scaled _beatstep
-
+    _style = style;
     switch (style)
     {
     case SINGLE:
     case DOUBLE:
     default:
         _steps_per_beat = 2;
+        break;
     case INTERLEAVE:
         _steps_per_beat = 4;
+        break;
     case MICROSTEP:
         _steps_per_beat = MICROSTEPS * 2;
+        break;
     }
 
-    _style = style;
+    // Reset the steps and the beat trigger to maintain a correct sync between
+    // the beat trigger and the coil voltage.
+    _stepper->currentstep = 0; // May cause a little motor stutter. Don't care.
+    _beatstep = 0;
+    _set_trig_step_LO();
+    _set_trig_beat_LO();
+
+    // Must recalculate the steps per second
     setSpeed(_speed_rev_per_sec);
 }
 
@@ -125,21 +128,10 @@ void DvG_Stepper::setSpeed(float rev_per_sec)
 {
     _speed_rev_per_sec = rev_per_sec;
     _speed_steps_per_sec = rev_per_sec * (_steps_per_rev * _steps_per_beat / 2);
-
-    /*
-    // Account for overhead I2C communication of many tiny steps
-    float effective_mega_seconds = 1000000.;
-    if (_style == MICROSTEP)
-    {
-        effective_mega_seconds -= 3. * _speed_steps_per_sec;
-    }
-    _stepInterval = abs(effective_mega_seconds / _speed_steps_per_sec);
-    */
-
     _stepInterval = abs(1000000. / _speed_steps_per_sec);
 
-    // Account for overhead I2C communication of many tiny steps
-    _stepInterval -= 3;
+    // Account for overhead I2C communication
+    _stepInterval -= 3; // 3 usec
 }
 
 float DvG_Stepper::speed()
@@ -164,7 +156,7 @@ void DvG_Stepper::step()
     }
     _beatstep++;
 
-    if (_beatstep == _steps_per_beat)
+    if (_beatstep >= _steps_per_beat)
     {
         _beatstep = 0;
     }
