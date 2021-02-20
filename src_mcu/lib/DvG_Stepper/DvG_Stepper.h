@@ -7,8 +7,11 @@ Heavily modified code from:
   $Id: AccelStepper.cpp,v 1.2 2010/10/24 07:46:18 mikem Exp mikem $
 
  Major changes:
-  * Internal step timer is based on micros() instead of millis()
+  * Internal step timer is based on micros() instead of millis().
   * No acceleration. Velocity is always a constant.
+  * Added step and beat trigger-out on digital pins.
+  * New constructor, passing in reference to `Adafruit_StepperMotor`.
+  * `setSpeed(arg)` takes in [rev per sec] instead of [steps per sec].
 */
 
 #ifndef DvG_Stepper_h
