@@ -416,8 +416,11 @@ uint8_t Adafruit_StepperMotor::onestep(uint8_t dir, uint8_t style) {
     }
   }
 
+  //Serial.print(currentstep);      // DvG
   currentstep += MICROSTEPS * 4;
   currentstep %= MICROSTEPS * 4;
+  //Serial.print(" - ");            // DvG
+  //Serial.println(currentstep);    // DvG
 
 #ifdef MOTORDEBUG
   Serial.print("current step: ");
