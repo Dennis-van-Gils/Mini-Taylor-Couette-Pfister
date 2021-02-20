@@ -134,10 +134,10 @@ private:
     /// max speed, acceleration and deceleration
     long _targetPos; // Steps
 
-    /// The current interval between steps in milliseconds.
+    /// The current interval between steps in microseconds
     unsigned long _stepInterval;
 
-    /// The last step time in milliseconds
+    /// The last step time in microseconds
     unsigned long _lastStepTime;
 
     // NEWLY ADDED

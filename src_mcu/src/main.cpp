@@ -53,8 +53,13 @@ DvG_Stepper Astepper(stepper, STEPS_PER_REV);
 
 // Set a faster I2C clock frequency, beneficial for faster stepping.
 // Arduino M0 Pro, SAMD21 chipset specs:
-//  supports: 100 kHz, 400 kHz, 1 MHz, 3.4 MHz
-//  default : 100 kHz (?)
+//   supports: 100 kHz, 400 kHz, 1 MHz, 3.4 MHz
+//   default : 100 kHz
+// @ 400 kHz --> safe max  800 steps / sec
+// @   1 MHz --> safe max 1600 steps / sec
+// @ 1.6 MHz --> safe max 2400 steps / sec
+// @ 2.0 MHz --> did not run
+// @ 3.4 MHz --> did not run
 #define I2C_SCL_FREQ 1000000 // [Hz]
 
 // SERIAL
@@ -109,9 +114,6 @@ void setup()
     // Set a faster I2C SCL frequency
     Wire.begin();
     Wire.setClock(I2C_SCL_FREQ);
-    //sercom3.disableWIRE();
-    //SERCOM3->I2CM.BAUD.bit.BAUD = SystemCoreClock / (2 * I2C_SCL_FREQ) - 1;
-    //sercom3.enableWIRE();
 
     Ser.println("done.");
     printSpeed();

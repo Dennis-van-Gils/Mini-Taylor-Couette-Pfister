@@ -107,6 +107,7 @@ void DvG_Stepper::setCurrentPosition(long position)
 
 void DvG_Stepper::setSpeed(float rev_per_sec)
 {
+    float effective_mega_seconds = 1000000.;
     _speed_rev_per_sec = rev_per_sec;
 
     switch (_style)
@@ -121,10 +122,12 @@ void DvG_Stepper::setSpeed(float rev_per_sec)
         break;
     case MICROSTEP:
         _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev * MICROSTEPS;
+        // Account for overhead I2C communication of many tiny steps
+        effective_mega_seconds -= 3. * _speed_steps_per_sec;
         break;
     }
 
-    _stepInterval = abs(1000000.0 / _speed_steps_per_sec);
+    _stepInterval = abs(effective_mega_seconds / _speed_steps_per_sec);
 }
 
 float DvG_Stepper::speed()
