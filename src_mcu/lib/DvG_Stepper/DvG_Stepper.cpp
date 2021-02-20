@@ -188,12 +188,13 @@ bool DvG_Stepper::runSpeed()
         if (_speed_rev_per_sec > 0)
         {
             _currentPos += 1;
+            step();
         }
         else if (_speed_rev_per_sec < 0)
         {
             _currentPos -= 1;
+            step();
         }
-        step();
 
         _lastStepTime = time;
         return true;
