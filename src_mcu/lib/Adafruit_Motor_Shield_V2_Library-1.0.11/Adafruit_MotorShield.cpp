@@ -299,6 +299,10 @@ void Adafruit_StepperMotor::release(void) {
   MC->setPWM(PWMBpin, 0);
 }
 
+void Adafruit_StepperMotor::reset_currentstep(void) {
+  currentstep = 0;  // See `DvG_Stepper::setStyle()`
+}
+
 /**************************************************************************/
 /*!
     @brief  Move the stepper motor with the given RPM speed, don't forget to

@@ -69,9 +69,9 @@ public:
   void step(uint16_t steps, uint8_t dir, uint8_t style = SINGLE);
   uint8_t onestep(uint8_t dir, uint8_t style);
   void release(void);
+  void reset_currentstep(void);  // See `DvG_Stepper::setStyle()`
 
   friend class Adafruit_MotorShield; ///< Let MotorShield create StepperMotors
-  uint8_t currentstep;               // DvG: Was private before
 
 private:
   uint32_t usperstep;
@@ -79,7 +79,7 @@ private:
   uint8_t PWMApin, AIN1pin, AIN2pin;
   uint8_t PWMBpin, BIN1pin, BIN2pin;
   uint16_t revsteps; // # steps per revolution
-  //uint8_t currentstep;  // DvG: We make it public for debugging 
+  uint8_t currentstep;
   Adafruit_MotorShield *MC;
   uint8_t steppernum;
 };

@@ -22,15 +22,6 @@
 #include "DvG_NeoPixel_Effects.h"
 #include "DvG_SerialCommand.h"
 
-/*
-// Redefine the default microstep division by Adafruit. Their library allows
-// it to be set to 8 or 16, where the latter is their default.
-#undef MICROSTEPS
-#define MICROSTEPS 8
-// YOU CAN"T DO THIS. Adafruit motorshield has other static `microstepcurve`
-// set, depending on MICROSTEPS
-*/
-
 // NEOPIXEL
 // --------
 #define PIN_NEOPIXEL 5

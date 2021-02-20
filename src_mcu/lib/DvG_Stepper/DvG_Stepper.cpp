@@ -79,7 +79,8 @@ void DvG_Stepper::setStyle(uint8_t style)
 
     // Reset the steps and the beat trigger to maintain a correct sync between
     // the beat trigger and the coil voltage.
-    _stepper->currentstep = 0; // May cause a little motor stutter. Don't care.
+    // May cause a little motor stutter. Don't care.
+    _stepper->reset_currentstep();
     _beatstep = 0;
     _set_trig_step_LO();
     _set_trig_beat_LO();
