@@ -3,8 +3,10 @@
   17-02-2021
 
   80 RPM: large rolls
-  oscil 250 ms @ 140 rpm: tiny rolls on inside
-  oscil 250 ms @ 155 rpm: double spirals, outside up, inside down
+  
+  oscil 250 ms @ 2.33 Hz: tiny rolls on inside
+  oscil 250 ms @ 2.58 Hz: double spirals, outside up, inside down
+  The transfer between the two cases is amazing to watch, both ways.
 
   x: max ~ 240 rpm SINGLE --> 800 steps per sec (needs 17 Volts)
   v: @ I2C clock = 1.6e6 we can achieve max ~1600 steps per sec
@@ -240,7 +242,7 @@ void loop()
         npe.rainbowTemporal(50);
     }
 
-    /*
+    //*
     now = micros();
     if (now - tick > T_oscil)
     {
@@ -248,7 +250,7 @@ void loop()
         speed = -speed;
         Astepper.setSpeed(speed);
     }
-    */
+    //*/
 
     // Step when necessary
     if (Astepper.running())
