@@ -149,29 +149,24 @@ private:
     void _set_trig_beat_HI();
     void _toggle_trig_step();
     void _toggle_trig_beat();
-    void _process_beat();
-
-    //void setSpeedRpm();
 
     Adafruit_StepperMotor *_stepper;
     uint16_t _steps_per_rev; // [steps per rev] as specified by the stepper motor
     uint8_t _style;          // SINGLE, DOUBLE, INTERLEAVE or MICROSTEP
+    uint8_t _steps_per_beat; // Depends on `_style`
+    uint8_t _beatstep = 0;
     bool _running;
 
     // The current motor speed
     // Positive is clockwise
     float _speed_rev_per_sec;
     float _speed_steps_per_sec;
-    // Speeds of more than 1000 steps per second are unreliable. Speed
-    // accuracy depends on the Arduino crystal. Jitter depends on how
-    // frequently you call the runSpeed() function.
 
     // For direct port manipulation, instead of the slower 'digitalWrite()'
     uint32_t _mask_trig_step;
     uint32_t _mask_trig_beat;
     volatile uint32_t *_port_trig_step;
     volatile uint32_t *_port_trig_beat;
-    uint8_t _beatstep = 0;
 };
 
 #endif

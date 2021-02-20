@@ -15,8 +15,10 @@ DvG_Stepper::DvG_Stepper(
 {
     _stepper = stepper;
     _steps_per_rev = steps_per_rev;
-    _style = SINGLE;
     _running = false;
+    _style = SINGLE;
+    _steps_per_beat = 1;
+    _beatstep = 0;
 
     _currentPos = 0;
     _targetPos = 0;
@@ -39,8 +41,6 @@ DvG_Stepper::DvG_Stepper(
     mode = portModeRegister(digitalPinToPort(PIN_TRIG_BEAT));
     *mode |= _mask_trig_beat; // Set pin to ouput
     _set_trig_beat_LO();      // Set pin to low
-
-    _beatstep = 0;
 }
 
 void DvG_Stepper::turn_on()
@@ -61,11 +61,27 @@ bool DvG_Stepper::running()
 
 void DvG_Stepper::setStyle(uint8_t style)
 {
-    _stepper->currentstep = 0;
+    //_stepper->currentstep = 0;
+    //_beatstep = 0;
+    //_set_trig_step_LO();
+    //_set_trig_beat_LO();
+
+    // TODO: use Adafruit_Motorshield::currentstep to calculate
+    // newly scaled _beatstep
+
+    switch (style)
+    {
+    case SINGLE:
+    case DOUBLE:
+    default:
+        _steps_per_beat = 2;
+    case INTERLEAVE:
+        _steps_per_beat = 4;
+    case MICROSTEP:
+        _steps_per_beat = MICROSTEPS * 2;
+    }
+
     _style = style;
-    _beatstep = 0;
-    _set_trig_step_LO();
-    _set_trig_beat_LO();
     setSpeed(_speed_rev_per_sec);
 }
 
@@ -107,27 +123,23 @@ void DvG_Stepper::setCurrentPosition(long position)
 
 void DvG_Stepper::setSpeed(float rev_per_sec)
 {
-    float effective_mega_seconds = 1000000.;
     _speed_rev_per_sec = rev_per_sec;
+    _speed_steps_per_sec = rev_per_sec * (_steps_per_rev * _steps_per_beat / 2);
 
-    switch (_style)
+    /*
+    // Account for overhead I2C communication of many tiny steps
+    float effective_mega_seconds = 1000000.;
+    if (_style == MICROSTEP)
     {
-    case SINGLE:
-    case DOUBLE:
-    default:
-        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev;
-        break;
-    case INTERLEAVE:
-        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev * 2;
-        break;
-    case MICROSTEP:
-        _speed_steps_per_sec = _speed_rev_per_sec * _steps_per_rev * MICROSTEPS;
-        // Account for overhead I2C communication of many tiny steps
         effective_mega_seconds -= 3. * _speed_steps_per_sec;
-        break;
     }
-
     _stepInterval = abs(effective_mega_seconds / _speed_steps_per_sec);
+    */
+
+    _stepInterval = abs(1000000. / _speed_steps_per_sec);
+
+    // Account for overhead I2C communication of many tiny steps
+    _stepInterval -= 3;
 }
 
 float DvG_Stepper::speed()
@@ -144,7 +156,18 @@ void DvG_Stepper::step()
 {
     _stepper->onestep(_speed_rev_per_sec > 0 ? FORWARD : BACKWARD, _style);
     _toggle_trig_step();
-    _process_beat();
+
+    // Process beat
+    if (_beatstep == 0)
+    {
+        _toggle_trig_beat();
+    }
+    _beatstep++;
+
+    if (_beatstep == _steps_per_beat)
+    {
+        _beatstep = 0;
+    }
 }
 
 bool DvG_Stepper::run()
@@ -211,34 +234,3 @@ void DvG_Stepper::_toggle_trig_step() { *_port_trig_step ^= _mask_trig_step; }
 void DvG_Stepper::_set_trig_beat_LO() { *_port_trig_beat &= ~_mask_trig_beat; }
 void DvG_Stepper::_set_trig_beat_HI() { *_port_trig_beat |= _mask_trig_beat; }
 void DvG_Stepper::_toggle_trig_beat() { *_port_trig_beat ^= _mask_trig_beat; }
-
-void DvG_Stepper::_process_beat()
-{
-    uint8_t N;
-
-    switch (_style)
-    {
-    case SINGLE:
-    case DOUBLE:
-    default:
-        N = 2;
-        break;
-    case INTERLEAVE:
-        N = 4;
-        break;
-    case MICROSTEP:
-        N = 16;
-        break;
-    }
-
-    if (_beatstep == 0)
-    {
-        _toggle_trig_beat();
-    }
-
-    _beatstep++;
-    if (_beatstep == N)
-    {
-        _beatstep = 0;
-    }
-}
