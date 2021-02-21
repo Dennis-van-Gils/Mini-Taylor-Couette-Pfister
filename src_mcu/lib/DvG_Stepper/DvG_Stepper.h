@@ -57,27 +57,27 @@ public:
     /// recent call to this function.
     /// \param[in] absolute The desired absolute position. Negative is
     /// anticlockwise from the 0 position.
-    void moveTo(long absolute);
+    void moveTo(int32_t absolute);
 
     /// Set the target position relative to the current position
     /// \param[in] relative The desired position relative to the current position. Negative is
     /// anticlockwise from the current position.
-    void move(long relative);
+    void move(int32_t relative);
 
     /// The distance from the current position to the target position.
     /// \return the distance from the current position to the target position
     /// in steps. Positive is clockwise from the current position.
-    long distanceToGo();
+    int32_t distanceToGo();
 
     /// The most recently set target position.
     /// \return the target position
     /// in steps. Positive is clockwise from the 0 position.
-    long targetPosition();
+    int32_t targetPosition();
 
     /// The currently motor position.
     /// \return the current motor position
     /// in steps. Positive is clockwise from the 0 position.
-    long currentPosition();
+    int32_t currentPosition();
 
     /// Resets the current position of the motor, so that wherever the mottor
     /// happens to be right now is considered to be the new position. Useful
@@ -85,7 +85,7 @@ public:
     /// positioning move.
     /// \param[in] position The position in steps of wherever the motor
     /// happens to be right now.
-    void setCurrentPosition(long position);
+    void setCurrentPosition(int32_t position);
 
     /// Sets the desired constant speed for use with runSpeed().
     /// \param[in] speed The desired constant speed in [rev per sec].
@@ -121,7 +121,7 @@ public:
     /// Moves the motor to the new target position and blocks until it is at
     /// position. Dont use this in event loops, since it blocks.
     /// \param[in] position The new target position.
-    void runToNewPosition(long position);
+    void runToNewPosition(int32_t position);
 
 protected:
     /// Called to execute a step using stepper functions. Only called when a new step is
@@ -130,18 +130,18 @@ protected:
 
 private:
     /// The current absolution position in steps.
-    long _currentPos; // Steps
+    int32_t _currentPos; // Steps
 
     /// The target position in steps. The DvG_Stepper library will move the
     /// motor from teh _currentPos to the _targetPos, taking into account the
     /// max speed, acceleration and deceleration
-    long _targetPos; // Steps
+    int32_t _targetPos; // Steps
 
     /// The current interval between steps in microseconds
-    unsigned long _stepInterval;
+    uint32_t _stepInterval;
 
     /// The last step time in microseconds
-    unsigned long _lastStepTime;
+    uint32_t _lastStepTime;
 
     // NEWLY ADDED
     // -----------
