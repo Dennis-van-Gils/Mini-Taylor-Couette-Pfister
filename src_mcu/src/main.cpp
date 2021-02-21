@@ -3,7 +3,7 @@
   17-02-2021
 
   80 RPM: large rolls
-  
+
   oscil 250 ms @ 2.33 Hz: tiny rolls on inside
   oscil 250 ms @ 2.58 Hz: double spirals, outside up, inside down
   The transfer between the two cases is amazing to watch, both ways.
@@ -49,6 +49,10 @@ DvG_NeoPixel_Effects npe = DvG_NeoPixel_Effects(&strip);
 #define STEPS_PER_REV 200 // As specified by the stepper motor
 #define STEPPER_PORT 2    // Motor connected to port #2 (M3 and M4)
 float speed = 1.0;        // [rev per sec]
+bool oscillating = false;
+// Oscillating at fixed distance?
+// Oscillating at fixed frequency?
+// Oscillating around a fixed position vs kicked in forwards movement only?
 
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_StepperMotor *stepper = AFMS.getStepper(STEPS_PER_REV, STEPPER_PORT);
@@ -255,7 +259,13 @@ void loop()
     // Step when necessary
     if (Astepper.running())
     {
-        Astepper.runSpeed();
+        if (~oscillating)
+        {
+            Astepper.runSpeed();
+        }
+        else
+        {
+        }
     }
 
     /*
