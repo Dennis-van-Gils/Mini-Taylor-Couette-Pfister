@@ -25,11 +25,28 @@
   DO NOT EXCEED V_motor ABOVE 19 V. At 20 V the current all of a sudden jumps up
   to huge values (> 0.5 A).
 
-  Idea linear power supply using LM317:
-  https://www.electronics-tutorials.ws/blog/variable-voltage-power-supply.html
+  *** Idea linear variable power supply:
 
-  Or try:
-  - https://www.adafruit.com/product/184
+    ---> https://www.conrad.com/p/conrad-components-psu-assembly-kit-input-voltage-range-30-v-ac-max-output-voltage-range-12-30-v-dc-198226
+
+    with
+
+    ---> https://learn.adafruit.com/ds3502-i2c-potentiometer/overview
+    buy: https://nl.mouser.com/new/adafruit/adafruit-ds3502-i2c-digital-potentiometer/
+
+  *** Other options:
+
+    https://www.adafruit.com/product/184
+
+    https://nl.farnell.com/microchip/mcp4261-103e-p/ic-dpot-5-5v-10kr-14-pdip-spi/dp/1578446
+
+  *** MCP4xxx libraries
+
+    https://github.com/dreamcat4/Mcp4261
+    https://github.com/teabot/McpDigitalPot
+    https://github.com/jmalloc/arduino-mcp4xxx
+    https://github.com/sleemanj/MCP41_Simple
+    https://github.com/ArduinoMax/MCP41xxx
 
  ******************************************************************************/
 
