@@ -24,6 +24,13 @@
 
   DO NOT EXCEED V_motor ABOVE 19 V. At 20 V the current all of a sudden jumps up
   to huge values (> 0.5 A).
+
+  Idea linear power supply using LM317:
+  https://www.electronics-tutorials.ws/blog/variable-voltage-power-supply.html
+
+  Or try:
+  - https://www.adafruit.com/product/184
+
  ******************************************************************************/
 
 #include <Arduino.h>
@@ -242,7 +249,7 @@ void loop()
         npe.rainbowTemporal(50);
     }
 
-    //*
+    /*
     now = micros();
     if (now - tick > T_oscil)
     {
@@ -250,7 +257,7 @@ void loop()
         speed = -speed;
         Astepper.setSpeed(speed);
     }
-    //*/
+    /*/
 
     // Step when necessary
     if (Astepper.running())
