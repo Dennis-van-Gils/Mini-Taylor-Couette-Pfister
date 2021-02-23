@@ -94,32 +94,32 @@ uint8_t DvG_Stepper::style()
     return _style;
 }
 
-void DvG_Stepper::moveTo(long absolute)
+void DvG_Stepper::moveTo(int32_t absolute)
 {
     _targetPos = absolute;
 }
 
-void DvG_Stepper::move(long relative)
+void DvG_Stepper::move(int32_t relative)
 {
     moveTo(_currentPos + relative);
 }
 
-long DvG_Stepper::distanceToGo()
+int32_t DvG_Stepper::distanceToGo()
 {
     return _targetPos - _currentPos;
 }
 
-long DvG_Stepper::targetPosition()
+int32_t DvG_Stepper::targetPosition()
 {
     return _targetPos;
 }
 
-long DvG_Stepper::currentPosition()
+int32_t DvG_Stepper::currentPosition()
 {
     return _currentPos;
 }
 
-void DvG_Stepper::setCurrentPosition(long position)
+void DvG_Stepper::setCurrentPosition(int32_t position)
 {
     // Useful during initialisations or after initial positioning
     _currentPos = position;
@@ -181,7 +181,7 @@ bool DvG_Stepper::runSpeed()
     // You must call this at least once per step
     // Returns true if a step occurred
 
-    unsigned long time = micros();
+    uint32_t time = micros();
 
     if (time > _lastStepTime + _stepInterval)
     {
@@ -215,7 +215,7 @@ bool DvG_Stepper::runSpeedToPosition()
     return _targetPos != _currentPos ? DvG_Stepper::runSpeed() : false;
 }
 
-void DvG_Stepper::runToNewPosition(long position)
+void DvG_Stepper::runToNewPosition(int32_t position)
 {
     // Blocks until the new target position is reached
     moveTo(position);
