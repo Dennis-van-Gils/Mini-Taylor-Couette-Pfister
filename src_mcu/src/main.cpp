@@ -1,3 +1,4 @@
+// clang-format off
 /*******************************************************************************
   Dennis van Gils
   17-02-2021
@@ -49,14 +50,16 @@
     https://github.com/ArduinoMax/MCP41xxx
 
  ******************************************************************************/
+// clang-format on
 
 #include <Arduino.h>
-#include "Wire.h"
+#include <Wire.h>
+
 #include "Adafruit_MotorShield.h"
 #include "Adafruit_NeoPixel_ZeroDMA.h"
-#include "DvG_Stepper.h"
 #include "DvG_NeoPixel_Effects.h"
 #include "DvG_SerialCommand.h"
+#include "DvG_Stepper.h"
 
 // NEOPIXEL
 // --------
@@ -98,56 +101,54 @@ DvG_Stepper Astepper(stepper, STEPS_PER_REV);
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
-void printSpeed()
-{
-    Ser.print("f = ");
-    Ser.print(Astepper.speed());
-    Ser.print(" Hz, ");
-    Ser.print(Astepper.speed_steps_per_sec());
-    Ser.print(" steps/s, ");
-    switch (Astepper.style())
-    {
+void printSpeed() {
+  Ser.print("f = ");
+  Ser.print(Astepper.speed());
+  Ser.print(" Hz, ");
+  Ser.print(Astepper.speed_steps_per_sec());
+  Ser.print(" steps/s, ");
+  switch (Astepper.style()) {
     case SINGLE:
-        Ser.println("SINGLE");
-        break;
+      Ser.println("SINGLE");
+      break;
     case DOUBLE:
-        Ser.println("DOUBLE");
-        break;
+      Ser.println("DOUBLE");
+      break;
     case INTERLEAVE:
-        Ser.println("INTERLEAVE");
-        break;
+      Ser.println("INTERLEAVE");
+      break;
     case MICROSTEP:
-        Ser.println("MICROSTEP");
-        break;
-    }
+      Ser.println("MICROSTEP");
+      break;
+  }
 }
 
 /*------------------------------------------------------------------------------
     Setup
 ------------------------------------------------------------------------------*/
 
-void setup()
-{
-    Ser.begin(115200);
-    Ser.print("Setup... ");
+void setup() {
+  Ser.begin(115200);
+  Ser.print("Setup... ");
 
-    // NeoPixel
-    strip.begin();
-    strip.setBrightness(brightness);
-    strip.show(); // Initialize all pixels to 'off'
+  // NeoPixel
+  strip.begin();
+  strip.setBrightness(brightness);
+  strip.show(); // Initialize all pixels to 'off'
 
-    // Stepper
-    AFMS.begin(); // Create with the default maximum PWM frequency of 1.6 kHz (1526 Hz according to spec sheet)
-    Astepper.turn_off();
-    Astepper.setSpeed(speed);
-    Astepper.setStyle(SINGLE); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
+  // Stepper
+  AFMS.begin(); // Create with the default maximum PWM frequency of 1.6 kHz
+                // (1526 Hz according to spec sheet)
+  Astepper.turn_off();
+  Astepper.setSpeed(speed);
+  Astepper.setStyle(SINGLE); // SINGLE, DOUBLE, INTERLEAVE, MICROSTEP
 
-    // Set a faster I2C SCL frequency
-    Wire.begin();
-    Wire.setClock(I2C_SCL_FREQ);
+  // Set a faster I2C SCL frequency
+  Wire.begin();
+  Wire.setClock(I2C_SCL_FREQ);
 
-    Ser.println("done.");
-    printSpeed();
+  Ser.println("done.");
+  printSpeed();
 }
 
 /*------------------------------------------------------------------------------
@@ -157,198 +158,159 @@ uint32_t tick = 0;
 uint32_t now = 0;
 uint32_t T_oscil = 250000; // [us]
 
-void loop()
-{
-    char *strCmd; // Incoming serial command string
-    static bool fOverrideWithWhite = false;
-    static bool fOverrideWithGreen = false;
+void loop() {
+  char *strCmd; // Incoming serial command string
+  static bool fOverrideWithWhite = false;
+  static bool fOverrideWithGreen = false;
 
-    // -------------------------------------------------------------------------
-    //   Process incoming serial command when available
-    // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  //   Process incoming serial command when available
+  // -------------------------------------------------------------------------
 
-    if (sc.available())
-    {
-        strCmd = sc.getCmd();
+  if (sc.available()) {
+    strCmd = sc.getCmd();
 
-        if (strcmp(strCmd, "?") == 0)
-        {
-            Ser.println("Mini Taylor-Couette demo Pfister");
-        }
-        else if (strcmp(strCmd, "=") == 0)
-        {
-            brightness > 245 ? brightness = 255 : brightness += 10;
-            Ser.print("brightness: ");
-            Ser.println(brightness);
-            strip.setBrightness(brightness);
-        }
-        else if (strcmp(strCmd, "-") == 0)
-        {
-            brightness < 10 ? brightness = 0 : brightness -= 10;
-            Ser.print("brightness: ");
-            Ser.println(brightness);
-            strip.setBrightness(brightness);
-        }
-        else if (strcmp(strCmd, "w") == 0)
-        {
-            fOverrideWithWhite = not(fOverrideWithWhite);
-            fOverrideWithGreen = false;
-            Ser.print("Only white: ");
-            Ser.println(fOverrideWithWhite);
-        }
-        else if (strcmp(strCmd, "g") == 0)
-        {
-            fOverrideWithWhite = false;
-            fOverrideWithGreen = not(fOverrideWithGreen);
-            Ser.print("Only green: ");
-            Ser.println(fOverrideWithGreen);
-        }
-        else if (strncmp(strCmd, "f", 1) == 0)
-        {
-            speed = parseFloatInString(strCmd, 1);
-            Astepper.setSpeed(speed);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, ",") == 0)
-        {
-            speed = (speed > 0 ? speed - .05 : speed + .05);
-            Astepper.setSpeed(speed);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, ".") == 0)
-        {
-            speed = (speed > 0 ? speed + .05 : speed - .05);
-            Astepper.setSpeed(speed);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, "1") == 0)
-        {
-            Astepper.setStyle(SINGLE);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, "2") == 0)
-        {
-            Astepper.setStyle(DOUBLE);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, "3") == 0)
-        {
-            Astepper.setStyle(INTERLEAVE);
-            printSpeed();
-        }
-        else if (strcmp(strCmd, "4") == 0)
-        {
-            Astepper.setStyle(MICROSTEP);
-            printSpeed();
-        }
-        else
-        {
-            if (Astepper.running())
-            {
-                Astepper.turn_off();
-                Ser.println("Release");
-            }
-            else
-            {
-                Astepper.turn_on();
-                Ser.println("Run");
-            }
-        }
+    if (strcmp(strCmd, "?") == 0) {
+      Ser.println("Mini Taylor-Couette demo Pfister");
+    } else if (strcmp(strCmd, "=") == 0) {
+      brightness > 245 ? brightness = 255 : brightness += 10;
+      Ser.print("brightness: ");
+      Ser.println(brightness);
+      strip.setBrightness(brightness);
+    } else if (strcmp(strCmd, "-") == 0) {
+      brightness < 10 ? brightness = 0 : brightness -= 10;
+      Ser.print("brightness: ");
+      Ser.println(brightness);
+      strip.setBrightness(brightness);
+    } else if (strcmp(strCmd, "w") == 0) {
+      fOverrideWithWhite = not(fOverrideWithWhite);
+      fOverrideWithGreen = false;
+      Ser.print("Only white: ");
+      Ser.println(fOverrideWithWhite);
+    } else if (strcmp(strCmd, "g") == 0) {
+      fOverrideWithWhite = false;
+      fOverrideWithGreen = not(fOverrideWithGreen);
+      Ser.print("Only green: ");
+      Ser.println(fOverrideWithGreen);
+    } else if (strncmp(strCmd, "f", 1) == 0) {
+      speed = parseFloatInString(strCmd, 1);
+      Astepper.setSpeed(speed);
+      printSpeed();
+    } else if (strcmp(strCmd, ",") == 0) {
+      speed = (speed > 0 ? speed - .05 : speed + .05);
+      Astepper.setSpeed(speed);
+      printSpeed();
+    } else if (strcmp(strCmd, ".") == 0) {
+      speed = (speed > 0 ? speed + .05 : speed - .05);
+      Astepper.setSpeed(speed);
+      printSpeed();
+    } else if (strcmp(strCmd, "1") == 0) {
+      Astepper.setStyle(SINGLE);
+      printSpeed();
+    } else if (strcmp(strCmd, "2") == 0) {
+      Astepper.setStyle(DOUBLE);
+      printSpeed();
+    } else if (strcmp(strCmd, "3") == 0) {
+      Astepper.setStyle(INTERLEAVE);
+      printSpeed();
+    } else if (strcmp(strCmd, "4") == 0) {
+      Astepper.setStyle(MICROSTEP);
+      printSpeed();
+    } else {
+      if (Astepper.running()) {
+        Astepper.turn_off();
+        Ser.println("Release");
+      } else {
+        Astepper.turn_on();
+        Ser.println("Run");
+      }
     }
+  }
 
-    //npe.fullColor(strip.Color(0, 200, 255), 1000);
-    if (fOverrideWithGreen)
-    {
-        // npe.fullColor(strip.Color(255, 140, 0), 1000);
-        npe.fullColor(strip.Color(0, 255, 0, 0), 1000);
+  // npe.fullColor(strip.Color(0, 200, 255), 1000);
+  if (fOverrideWithGreen) {
+    // npe.fullColor(strip.Color(255, 140, 0), 1000);
+    npe.fullColor(strip.Color(0, 255, 0, 0), 1000);
+  } else if (fOverrideWithWhite) {
+    npe.fullColor(strip.Color(0, 0, 0, 255), 1000);
+  } else {
+    npe.rainbowTemporal(50);
+  }
+
+  /*
+  now = micros();
+  if (now - tick > T_oscil)
+  {
+      tick += T_oscil;
+      speed = -speed;
+      Astepper.setSpeed(speed);
+  }
+  /*/
+
+  // Step when necessary
+  if (Astepper.running()) {
+    if (!oscillating) {
+      Astepper.runSpeed();
+    } else {
     }
-    else if (fOverrideWithWhite)
-    {
-        npe.fullColor(strip.Color(0, 0, 0, 255), 1000);
-    }
-    else
-    {
-        npe.rainbowTemporal(50);
-    }
+  }
 
-    /*
-    now = micros();
-    if (now - tick > T_oscil)
-    {
-        tick += T_oscil;
-        speed = -speed;
-        Astepper.setSpeed(speed);
-    }
-    /*/
+  /*
+  if (running_effect_no == 1) {
+      // White
+      npe.fullColor(strip.Color(0, 0, 0, 255), 1000);
 
-    // Step when necessary
-    if (Astepper.running())
-    {
-        if (~oscillating)
-        {
-            Astepper.runSpeed();
-        }
-        else
-        {
-        }
-    }
+  } else if (running_effect_no == 2) {
+      npe.rainbowSpatial(5, 1);
+      //npe.rainbowCycle(0, 10);
 
-    /*
-    if (running_effect_no == 1) {
-        // White
-        npe.fullColor(strip.Color(0, 0, 0, 255), 1000);
+  } else if (running_effect_no == 3) {
+      npe.rainbowSpatial(0, 10);
 
-    } else if (running_effect_no == 2) {
-        npe.rainbowSpatial(5, 1);
-        //npe.rainbowCycle(0, 10);
+  } else if (running_effect_no == 4) {
+      npe.rainbowTemporal(50);
 
-    } else if (running_effect_no == 3) {
-        npe.rainbowSpatial(0, 10);
+  } else if (running_effect_no == 5) {
+      // Red
+      npe.fullColor(strip.Color(255, 0, 0), 1000);
 
-    } else if (running_effect_no == 4) {
-        npe.rainbowTemporal(50);
+  } else if (running_effect_no == 6) {
+      // Green
+      npe.colorWipe(strip.Color(0, 255, 0), 100);
 
-    } else if (running_effect_no == 5) {
-        // Red
-        npe.fullColor(strip.Color(255, 0, 0), 1000);
+  } else if (running_effect_no == 7) {
+      // Green
+      npe.fullColor(strip.Color(0, 255, 0), 1000);
 
-    } else if (running_effect_no == 6) {
-        // Green
-        npe.colorWipe(strip.Color(0, 255, 0), 100);
+  } else if (running_effect_no == 8) {
+      // Blue
+      npe.colorWipe(strip.Color(0, 0, 255), 100);
 
-    } else if (running_effect_no == 7) {
-        // Green
-        npe.fullColor(strip.Color(0, 255, 0), 1000);
+  } else if (running_effect_no == 9) {
+      // Blue
+      npe.fullColor(strip.Color(0, 0, 255), 1000);
 
-    } else if (running_effect_no == 8) {
-        // Blue
-        npe.colorWipe(strip.Color(0, 0, 255), 100);
+  } else if (running_effect_no == 10) {
+      // White
+      npe.colorWipe(strip.Color(0, 0, 0, 255), 100);
+  }
+  */
 
-    } else if (running_effect_no == 9) {
-        // Blue
-        npe.fullColor(strip.Color(0, 0, 255), 1000);
+  /*
+  if (fOverrideWithWhite) {
+      npe.finish();
+      running_effect_no = 0;
+  }
+  if (fOverrideWithGreen) {
+      npe.finish();
+      running_effect_no = 6;
+  }
 
-    } else if (running_effect_no == 10) {
-        // White
-        npe.colorWipe(strip.Color(0, 0, 0, 255), 100);
-    }
-    */
-
-    /*
-    if (fOverrideWithWhite) {
-        npe.finish();
-        running_effect_no = 0;
-    }
-    if (fOverrideWithGreen) {
-        npe.finish();
-        running_effect_no = 6;
-    }
-
-    if (npe.effectIsDone()) {
-        running_effect_no++;
-        if (running_effect_no > 10) {
-        running_effect_no = 1;
-        }
-    }
-    */
+  if (npe.effectIsDone()) {
+      running_effect_no++;
+      if (running_effect_no > 10) {
+      running_effect_no = 1;
+      }
+  }
+  */
 }

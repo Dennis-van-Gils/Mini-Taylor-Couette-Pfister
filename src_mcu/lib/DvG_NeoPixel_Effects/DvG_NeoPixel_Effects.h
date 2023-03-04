@@ -1,17 +1,18 @@
 #ifndef DvG_NeoPixel_Effects_h
 #define DvG_NeoPixel_Effects_h
 
-//#define Use_Adafruit_NeoPixel
+// #define Use_Adafruit_NeoPixel
 #define Use_Adafruit_NeoPixel_ZeroDMA
 
 #include <Arduino.h>
 #ifdef Use_Adafruit_NeoPixel_ZeroDMA
-  #include "Adafruit_NeoPixel_ZeroDMA.h"
+#  include "Adafruit_NeoPixel_ZeroDMA.h"
 #else
-  #include "Adafruit_NeoPixel.h"
+#  include "Adafruit_NeoPixel.h"
 #endif
 
 #ifndef DvG_NeoPixel_Effects_h
+// clang-format off
 byte my_gamma[256] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,
@@ -29,43 +30,44 @@ byte my_gamma[256] = {
   144,146,148,150,152,154,156,158,160,162,164,167,169,171,173,175,
   177,180,182,184,186,189,191,193,196,198,200,203,205,208,210,213,
   215,218,220,223,225,228,231,233,236,239,241,244,247,249,252,255 };
+// clang-format on
 #endif
 
-class DvG_NeoPixel_Effects{
-  public:
-    #ifdef Use_Adafruit_NeoPixel_ZeroDMA
-    DvG_NeoPixel_Effects(Adafruit_NeoPixel_ZeroDMA* thisStrip);
-    #else
-    DvG_NeoPixel_Effects(Adafruit_NeoPixel* thisStrip);
-    #endif
+class DvG_NeoPixel_Effects {
+public:
+#ifdef Use_Adafruit_NeoPixel_ZeroDMA
+  DvG_NeoPixel_Effects(Adafruit_NeoPixel_ZeroDMA *thisStrip);
+#else
+  DvG_NeoPixel_Effects(Adafruit_NeoPixel *thisStrip);
+#endif
 
-    uint32_t Wheel(byte WheelPos);
-    uint8_t red(uint32_t c);
-    uint8_t green(uint32_t c);
-    uint8_t blue(uint32_t c);
+  uint32_t Wheel(byte WheelPos);
+  uint8_t red(uint32_t c);
+  uint8_t green(uint32_t c);
+  uint8_t blue(uint32_t c);
 
-    bool effectIsDone(void);
-    void finish(void);
+  bool effectIsDone(void);
+  void finish(void);
 
-    // Effects
-    void holdAndWait(uint32_t wait);
-    void fullColor(uint32_t c, uint16_t wait);
-    void colorWipe(uint32_t c, uint16_t wait);
-    void rainbowSpatial(uint16_t wait, uint8_t num_cycles);
-    void rainbowTemporal(uint16_t wait);
+  // Effects
+  void holdAndWait(uint32_t wait);
+  void fullColor(uint32_t c, uint16_t wait);
+  void colorWipe(uint32_t c, uint16_t wait);
+  void rainbowSpatial(uint16_t wait, uint8_t num_cycles);
+  void rainbowTemporal(uint16_t wait);
 
-  private:
-    #ifdef Use_Adafruit_NeoPixel_ZeroDMA
-    Adafruit_NeoPixel_ZeroDMA* strip;
-    #else
-    Adafruit_NeoPixel* strip;
-    #endif
-    uint16_t iPx; // Pixel number, used to iterate over total number of pixels
-    uint32_t j;   // Arbitrary counter for effects
-    uint32_t last_update;
-    uint32_t now;
-    bool effect_is_done;
-    void startup(void);
+private:
+#ifdef Use_Adafruit_NeoPixel_ZeroDMA
+  Adafruit_NeoPixel_ZeroDMA *strip;
+#else
+  Adafruit_NeoPixel *strip;
+#endif
+  uint16_t iPx; // Pixel number, used to iterate over total number of pixels
+  uint32_t j;   // Arbitrary counter for effects
+  uint32_t last_update;
+  uint32_t now;
+  bool effect_is_done;
+  void startup(void);
 };
 
 #endif
