@@ -65,7 +65,7 @@
 uint8_t brightness = 50; // 200
 uint8_t running_effect_no = 1;
 
-Adafruit_NeoPixel_ZeroDMA strip(NUM_LEDS, PIN_NEOPIXEL, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel_ZeroDMA strip(NUM_LEDS, PIN_NEOPIXEL, NEO_GRBW);
 DvG_NeoPixel_Effects npe = DvG_NeoPixel_Effects(&strip);
 
 // STEPPER
@@ -161,7 +161,7 @@ void loop()
 {
     char *strCmd; // Incoming serial command string
     static bool fOverrideWithWhite = false;
-    static bool fOverrideWithGreen = true;
+    static bool fOverrideWithGreen = false;
 
     // -------------------------------------------------------------------------
     //   Process incoming serial command when available
@@ -259,7 +259,8 @@ void loop()
     //npe.fullColor(strip.Color(0, 200, 255), 1000);
     if (fOverrideWithGreen)
     {
-        npe.fullColor(strip.Color(255, 140, 0), 1000);
+        // npe.fullColor(strip.Color(255, 140, 0), 1000);
+        npe.fullColor(strip.Color(0, 255, 0, 0), 1000);
     }
     else if (fOverrideWithWhite)
     {
