@@ -29,6 +29,8 @@
   *** Idea linear variable power supply:
 
     ---> https://www.conrad.com/p/conrad-components-psu-assembly-kit-input-voltage-range-30-v-ac-max-output-voltage-range-12-30-v-dc-198226
+    or (?)
+    https://www.conrad.com/p/h-tronic-psu-component-input-voltage-range-30-v-ac-max-output-voltage-range-1-30-v-dc-3-a-116718
 
     with
 
